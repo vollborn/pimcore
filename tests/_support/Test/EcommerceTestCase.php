@@ -21,6 +21,7 @@ use Pimcore\Bundle\EcommerceFrameworkBundle\Environment;
 use Pimcore\Bundle\EcommerceFrameworkBundle\EnvironmentInterface;
 use Pimcore\Bundle\EcommerceFrameworkBundle\EventListener\SessionBagListener;
 use Pimcore\Localization\LocaleService;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
@@ -49,7 +50,7 @@ abstract class EcommerceTestCase extends TestCase
     protected function buildSession(): SessionInterface
     {
         if (null === $this->session) {
-            $this->session = new Session(new MockArraySessionStorage());
+            $this->session = \Pimcore::getContainer()->get('session');
 
             $configurator = new SessionBagListener();
             $configurator->configure($this->session);
