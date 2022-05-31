@@ -5,6 +5,10 @@
   Please note, if the routing import config is in use, it is recommended to correct the config path (by removing `/Resources`) to follow the [new folder tree structure](https://github.com/prestaconcept/PrestaSitemapBundle/releases/tag/v3.0.0),
   eg. "@PrestaSitemapBundle/~~Resources/~~config/routing.yaml", to ensure a smoother upgrade to upcoming major release.
 - [Backend search] `key` and `index` columns have been added to the search index. Run `./bin/console pimcore:search-backend-reindex` to reindex.
+- [Session] Implementing Session Configurator with tag `pimcore.session.configurator` to register session bags, is deprecated and will be removed in Pimcore 11.
+  Implement an (EventListener)[] to register a session bag before the session is started.
+- [Ecommerce][PricingManager] Token condition is deprecated and will be removed in Pimcore 11.
+- Parameter `pimcore.admin.session.attribute_bags` is deprecated and will be removed in Pimcore 11.
 
 ## 10.4.0
 - **Important**: The folder structure for storing thumbnails changed, please run `bin/console pimcore:migrate:thumbnails-folder-structure` after the update to copy existing thumbnails to new folder structure. If you're dealing with a huge amount of thumbnails you should consider that this change might increase the load on your system as well as page-loading times during the migration command is executed, as non-existing thumbnails are then generated on demand. 

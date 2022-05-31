@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Pimcore\Bundle\EcommerceFrameworkBundle;
 
-use Pimcore\Bundle\EcommerceFrameworkBundle\Tools\SessionConfigurator;
+use Pimcore\Bundle\EcommerceFrameworkBundle\EventListener\SessionBagListener;
 use Pimcore\Localization\LocaleServiceInterface;
 use Symfony\Component\HttpFoundation\Session\Attribute\AttributeBagInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -126,7 +126,7 @@ class SessionEnvironment extends Environment implements EnvironmentInterface
     protected function getSessionBag(): AttributeBagInterface
     {
         /** @var AttributeBagInterface $sessionBag */
-        $sessionBag = $this->session->getBag(SessionConfigurator::ATTRIBUTE_BAG_ENVIRONMENT);
+        $sessionBag = $this->session->getBag(SessionBagListener::ATTRIBUTE_BAG_ENVIRONMENT);
 
         return $sessionBag;
     }
