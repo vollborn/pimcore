@@ -266,6 +266,13 @@ final class ClassDefinition extends Model\AbstractModel
     public $enableGridLocking = false;
 
     /**
+     * @internal
+     *
+     * @var ClassDefinition\Data[]
+     */
+    private array $deletedDataComponents = [];
+
+    /**
      * @param string $id
      * @param bool $force
      *
@@ -476,6 +483,8 @@ final class ClassDefinition extends Model\AbstractModel
         } else {
             $this->dispatchEvent(new ClassDefinitionEvent($this), DataObjectClassDefinitionEvents::POST_ADD);
         }
+
+        $this->deleteDeletedDataComponentsInCustomLayout();
     }
 
     /**
@@ -845,10 +854,28 @@ final class ClassDefinition extends Model\AbstractModel
      */
     public function setLayoutDefinitions($layoutDefinitions)
     {
+        $oldFieldDefinitions = null;
+        if($this->layoutDefinitions !== null) {
+            $this->setDeletedDataComponents([]);
+            $oldFieldDefinitions = $this->getFieldDefinitions();
+        }
+
         $this->layoutDefinitions = $layoutDefinitions;
 
         $this->fieldDefinitions = [];
         $this->extractDataDefinitions($this->layoutDefinitions);
+
+        if($oldFieldDefinitions !== null) {
+            $newFieldDefinitions = $this->getFieldDefinitions();
+            $deletedComponents = [];
+            foreach ($oldFieldDefinitions as $fieldDefinition) {
+                if(!array_key_exists($fieldDefinition->getName(), $newFieldDefinitions)) {
+                    array_push($deletedComponents, $fieldDefinition);
+                }
+            }
+            $this->setDeletedDataComponents($deletedComponents);
+        }
+
 
         return $this;
     }
@@ -1370,5 +1397,78 @@ final class ClassDefinition extends Model\AbstractModel
         $this->generateTypeDeclarations = (bool) $generateTypeDeclarations;
 
         return $this;
+    }
+
+    /**
+     * @return ClassDefinition\Data[]
+     */
+    public function getDeletedDataComponents() {
+        return $this->deletedDataComponents;
+    }
+
+    /**
+     * @param ClassDefinition\Data[] $deletedDataComponents
+     *
+     * @return $this
+     */
+    public function setDeletedDataComponents(array $deletedDataComponents): ClassDefinition {
+        $this->deletedDataComponents = $deletedDataComponents;
+        return $this;
+    }
+
+    private function deleteDeletedDataComponentsInCustomLayout(): void {
+        if(empty($this->getDeletedDataComponents())) {
+            return;
+        }
+        $customLayouts = new ClassDefinition\CustomLayout\Listing();
+        $customLayouts->setCondition('classId = ?', $this->getId());
+        $customLayouts = $customLayouts->load();
+
+        foreach ($customLayouts as $customLayout) {
+            $layoutDefinition = $customLayout->getLayoutDefinitions();
+            $this->deleteDeletedDataComponentsInLayoutDefinition( $layoutDefinition, $layoutDefinition);
+            $customLayout->setLayoutDefinitions($layoutDefinition);
+            $customLayout->save();
+        }
+    }
+
+
+
+    /**
+     * @param ClassDefinition\Layout $layoutDefinition
+     * @param ClassDefinition\Layout|ClassDefinition\Data $component
+     * @param int[] $keyArray
+     *
+     * @return void
+     */
+    private function deleteDeletedDataComponentsInLayoutDefinition(ClassDefinition\Layout $layoutDefinition, ClassDefinition\Data|ClassDefinition\Layout $component, array $keyArray = []): void
+    {
+        if ($component instanceof ClassDefinition\Data) {
+            $deletedComponents = $this->getDeletedDataComponents();
+            $shouldDeleteComponent = false;
+            foreach ($deletedComponents as $deletedComponent) {
+                if ($deletedComponent->getName() === $component->getName()) {
+                    $shouldDeleteComponent = true;
+                }
+            }
+            if (!$shouldDeleteComponent) {
+                return;
+            }
+
+            $children = &$layoutDefinition->getChildrenByRef()[$keyArray[0]];
+            for ($i = 1; $i < count($keyArray) - 1; $i++) {
+                $children = &$children->getChildrenByRef()[$keyArray[$i]];
+            }
+
+            array_splice($children->getChildrenByRef(), end($keyArray), 1);
+
+            return;
+        }
+
+        for ($i = 0; $i < count($component->getChildren()); $i++) {
+            $tempKeyArray = $keyArray;
+            array_push($tempKeyArray, $i);
+            $this->deleteDeletedDataComponentsInLayoutDefinition($layoutDefinition, $component->getChildren()[$i], $tempKeyArray);
+        }
     }
 }
