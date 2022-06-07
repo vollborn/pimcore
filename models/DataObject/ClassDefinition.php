@@ -1426,7 +1426,7 @@ final class ClassDefinition extends Model\AbstractModel
 
         foreach ($customLayouts as $customLayout) {
             $layoutDefinition = $customLayout->getLayoutDefinitions();
-            $this->deleteDeletedDataComponentsInLayoutDefinition( $layoutDefinition, $layoutDefinition);
+            $this->deleteDeletedDataComponentsInLayoutDefinition($layoutDefinition, $layoutDefinition);
             $customLayout->setLayoutDefinitions($layoutDefinition);
             $customLayout->save();
         }
@@ -1439,9 +1439,9 @@ final class ClassDefinition extends Model\AbstractModel
      * @param ClassDefinition\Layout|ClassDefinition\Data $component
      * @param int[] $keyArray
      *
-     * @return void
+     * @return int
      */
-    private function deleteDeletedDataComponentsInLayoutDefinition(ClassDefinition\Layout $layoutDefinition, ClassDefinition\Data|ClassDefinition\Layout $component, array $keyArray = []): void
+    private function deleteDeletedDataComponentsInLayoutDefinition(ClassDefinition\Layout $layoutDefinition, ClassDefinition\Data|ClassDefinition\Layout $component, array $keyArray = []): int
     {
         if ($component instanceof ClassDefinition\Data) {
             $deletedComponents = $this->getDeletedDataComponents();
@@ -1452,7 +1452,7 @@ final class ClassDefinition extends Model\AbstractModel
                 }
             }
             if (!$shouldDeleteComponent) {
-                return;
+                return 0;
             }
 
             $children = &$layoutDefinition->getChildrenByRef()[$keyArray[0]];
@@ -1462,13 +1462,15 @@ final class ClassDefinition extends Model\AbstractModel
 
             array_splice($children->getChildrenByRef(), end($keyArray), 1);
 
-            return;
+            return 1;
         }
 
         for ($i = 0; $i < count($component->getChildren()); $i++) {
             $tempKeyArray = $keyArray;
             array_push($tempKeyArray, $i);
-            $this->deleteDeletedDataComponentsInLayoutDefinition($layoutDefinition, $component->getChildren()[$i], $tempKeyArray);
+            $i -= $this->deleteDeletedDataComponentsInLayoutDefinition($layoutDefinition, $component->getChildren()[$i], $tempKeyArray);
         }
+
+        return 0;
     }
 }
